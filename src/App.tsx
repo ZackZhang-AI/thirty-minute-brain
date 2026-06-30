@@ -355,6 +355,7 @@ export default function App() {
                     <EventCard
                       key={event.id}
                       event={event}
+                      searchQuery={query}
                       selected={selectedIds.includes(event.id)}
                       onSelectedChange={(id) => setSelectedIds((current) => toggleSelection(current, id))}
                       onDelete={handleDelete}
@@ -392,6 +393,10 @@ export default function App() {
           clipboardEnabled={clipboardEnabled}
           onClipboardEnabledChange={setClipboardEnabled}
           onClose={() => setIsSettingsOpen(false)}
+          onClearWindow={async (minutes) => {
+            await eventApi.clearEvents({ windowMinutes: minutes });
+            await refreshEvents();
+          }}
           onClearAll={async () => {
             await eventApi.clearAllEvents();
             await refreshEvents();

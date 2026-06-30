@@ -17,9 +17,11 @@ import {
 } from "@tabler/icons-react";
 import { formatAgo, formatClock } from "../lib/time";
 import type { MemoryEvent } from "../lib/types";
+import { HighlightedText } from "./HighlightedText";
 
 interface EventCardProps {
   event: MemoryEvent;
+  searchQuery?: string;
   selected?: boolean;
   onSelectedChange?: (id: string) => void;
   onDelete: (id: string) => void;
@@ -27,7 +29,7 @@ interface EventCardProps {
   onUpdate: (id: string, input: { title?: string; note?: string | null }) => void;
 }
 
-export function EventCard({ event, selected = false, onSelectedChange, onDelete, onPin, onUpdate }: EventCardProps) {
+export function EventCard({ event, searchQuery = "", selected = false, onSelectedChange, onDelete, onPin, onUpdate }: EventCardProps) {
   const Icon = iconForType(event.type);
   const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -87,9 +89,11 @@ export function EventCard({ event, selected = false, onSelectedChange, onDelete,
           </div>
         ) : (
           <button className="block w-full text-left" type="button" onClick={() => setExpanded((value) => !value)}>
-            <h3 className="truncate text-sm font-semibold text-zinc-100">{event.title}</h3>
+            <h3 className="truncate text-sm font-semibold text-zinc-100">
+              <HighlightedText text={event.title} query={searchQuery} />
+            </h3>
             <p className={expanded ? "mt-1 whitespace-pre-wrap text-sm leading-6 text-zinc-400" : "mt-1 line-clamp-2 text-sm leading-6 text-zinc-400"}>
-              {preview}
+              <HighlightedText text={preview} query={searchQuery} />
             </p>
           </button>
         )}

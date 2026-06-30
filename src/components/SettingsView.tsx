@@ -7,11 +7,12 @@ import type { PrivacyStatus, WatchedFolder } from "../lib/types";
 interface SettingsViewProps {
   clipboardEnabled: boolean;
   onClipboardEnabledChange: (enabled: boolean) => void;
+  onClearWindow: (windowMinutes: number) => Promise<void>;
   onClearAll: () => Promise<void>;
   onClose: () => void;
 }
 
-export function SettingsView({ clipboardEnabled, onClipboardEnabledChange, onClearAll, onClose }: SettingsViewProps) {
+export function SettingsView({ clipboardEnabled, onClipboardEnabledChange, onClearWindow, onClearAll, onClose }: SettingsViewProps) {
   const [folders, setFolders] = useState<WatchedFolder[]>([]);
   const [privacyStatus, setPrivacyStatus] = useState<PrivacyStatus | null>(null);
   const [manualPath, setManualPath] = useState("");
@@ -124,14 +125,28 @@ export function SettingsView({ clipboardEnabled, onClipboardEnabledChange, onCle
             </div>
           </div>
 
-          <button
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100 transition hover:bg-red-500/20"
-            type="button"
-            onClick={onClearAll}
-          >
-            <IconTrash size={18} stroke={1.8} />
-            Clear all events
-          </button>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-4">
+            <p className="text-sm font-medium text-zinc-100">Data cleanup</p>
+            <p className="mt-1 text-sm leading-6 text-zinc-500">Pinned events are kept when clearing a time window.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              <button className="secondary-button" type="button" onClick={() => onClearWindow(30)}>
+                <IconTrash size={18} stroke={1.8} />
+                Clear 30 min
+              </button>
+              <button className="secondary-button" type="button" onClick={() => onClearWindow(1440)}>
+                <IconTrash size={18} stroke={1.8} />
+                Clear 24 h
+              </button>
+              <button
+                className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"
+                type="button"
+                onClick={onClearAll}
+              >
+                <IconTrash size={18} stroke={1.8} />
+                Clear all
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

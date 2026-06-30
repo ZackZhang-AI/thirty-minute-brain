@@ -40,4 +40,20 @@ describe("EventCard", () => {
 
     expect(onSelectedChange).toHaveBeenCalledWith("event-1");
   });
+
+  it("highlights search matches in the event title", () => {
+    render(
+      <EventCard
+        event={baseEvent}
+        searchQuery="typeerror"
+        onDelete={vi.fn()}
+        onPin={vi.fn()}
+        onUpdate={vi.fn()}
+      />
+    );
+
+    const matches = screen.getAllByText("TypeError");
+    expect(matches.length).toBeGreaterThan(0);
+    expect(matches.every((match) => match.tagName === "MARK")).toBe(true);
+  });
 });
