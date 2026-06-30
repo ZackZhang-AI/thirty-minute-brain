@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: #09090b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100dvh;
+  background: #09090b;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.primary-button,
+.secondary-button,
+.toolbar-button,
+.icon-button,
+.segment,
+.type-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.625rem;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 120ms ease;
+}
+
+.primary-button:active,
+.secondary-button:active,
+.toolbar-button:active,
+.icon-button:active,
+.segment:active,
+.type-button:active {
+  transform: translateY(1px);
+}
+
+.primary-button {
+  min-height: 2.5rem;
+  border: 1px solid rgb(52 211 153 / 0.55);
+  background: #34d399;
+  padding: 0.55rem 0.9rem;
+  color: #052e23;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.primary-button:hover {
+  background: #6ee7b7;
+}
+
+.secondary-button,
+.toolbar-button {
+  min-height: 2.5rem;
+  border: 1px solid #27272a;
+  background: #18181b;
+  padding: 0.55rem 0.85rem;
+  color: #e4e4e7;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.secondary-button:hover,
+.toolbar-button:hover,
+.icon-button:hover {
+  border-color: #3f3f46;
+  background: #27272a;
+}
+
+.icon-button {
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  border: 1px solid #27272a;
+  background: #18181b;
+  color: #e4e4e7;
+}
+
+.segment {
+  min-width: 4.25rem;
+  padding: 0.45rem 0.75rem;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.segment-active {
+  background: #34d399;
+  color: #052e23;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(9 9 11 / 0.78);
+  padding: 1rem;
+}
+
+.modal-panel {
+  width: 100%;
+  max-width: 38rem;
+  border: 1px solid #27272a;
+  border-radius: 1rem;
+  background: #18181b;
+  padding: 1.25rem;
+  color: #f4f4f5;
+  box-shadow: 0 24px 90px rgb(0 0 0 / 0.45);
+}
+
+.type-button {
+  border: 1px solid #27272a;
+  background: #09090b;
+  padding: 0.75rem;
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.type-button-active {
+  border-color: rgb(52 211 153 / 0.55);
+  background: rgb(52 211 153 / 0.12);
+  color: #a7f3d0;
+}
+
+.field-label {
+  margin-top: 0.85rem;
+  display: grid;
+  gap: 0.45rem;
+  color: #d4d4d8;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.field-input,
+.field-textarea {
+  width: 100%;
+  border: 1px solid #3f3f46;
+  border-radius: 0.625rem;
+  background: #09090b;
+  color: #f4f4f5;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.field-input {
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+}
+
+.field-textarea {
+  min-height: 8rem;
+  resize: vertical;
+  padding: 0.75rem;
+}
+
+.field-input:focus,
+.field-textarea:focus {
+  border-color: rgb(52 211 153 / 0.7);
+  box-shadow: 0 0 0 4px rgb(52 211 153 / 0.1);
+}
+
+.field-input::placeholder,
+.field-textarea::placeholder {
+  color: #71717a;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
