@@ -1,4 +1,5 @@
 import { generateContextPack } from "./contextPack";
+import { normalizeCreateEventRequest } from "./ingestion";
 import { filterSensitiveContent } from "./sensitive";
 import { applyEventFilters, filterEventsForQuery, getEventsWithinWindow } from "./search";
 import type {
@@ -82,17 +83,18 @@ export function createLocalEventStore(options: LocalStoreOptions = {}): EventSto
 
   const store: EventStore = {
     async createEvent(input) {
-      const filtered = input.content ? filterSensitiveContent(input.content) : null;
+      const normalized = normalizeCreateEventRequest(input);
+      const filtered = normalized.content ? filterSensitiveContent(normalized.content) : null;
       return save(
         createBaseEvent({
-          type: input.type,
-          title: input.title.trim() || filtered?.title || "Untitled",
+          type: normalized.type,
+          title: normalized.title.trim() || filtered?.title || "Untitled",
           content: filtered ? filtered.content : null,
-          path: input.path ?? null,
-          url: input.url ?? null,
-          note: input.note ?? null,
-          source: input.source,
-          metadataJson: input.metadataJson ?? null,
+          path: normalized.path ?? null,
+          url: normalized.url ?? null,
+          note: normalized.note ?? null,
+          source: normalized.source,
+          metadataJson: normalized.metadataJson ?? null,
           sensitiveFlag: filtered?.sensitive ?? false,
           sensitiveReason: filtered?.reason ?? null
         })

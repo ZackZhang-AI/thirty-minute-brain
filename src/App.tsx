@@ -15,9 +15,13 @@ import { AddContextModal } from "./components/AddContextModal";
 import { ContextPackModal } from "./components/ContextPackModal";
 import { EmptyState } from "./components/EmptyState";
 import { EventCard } from "./components/EventCard";
+import { PrivacyNoticeModal } from "./components/PrivacyNoticeModal";
 import { SearchBar } from "./components/SearchBar";
 import { SettingsView } from "./components/SettingsView";
+import { summarizeRecentActivity } from "./lib/activitySummary";
 import { eventApi } from "./lib/api";
+import { createSettingsStore } from "./lib/settings";
+import type { AppSettings } from "./lib/settings";
 import type { ContextPackTemplate, EventType, MemoryEvent, NewManualEventInput } from "./lib/types";
 
 const WINDOW_OPTIONS = [30, 1440] as const;
@@ -38,6 +42,8 @@ const TEMPLATE_OPTIONS: Array<{ value: ContextPackTemplate; label: string }> = [
 ];
 
 export default function App() {
+  const settingsStore = useMemo(() => createSettingsStore(), []);
+  const [settings, setSettings] = useState<AppSettings>(() => settingsStore.get());
   const [events, setEvents] = useState<MemoryEvent[]>([]);
   const [query, setQuery] = useState("");
   const [windowMinutes, setWindowMinutes] = useState<(typeof WINDOW_OPTIONS)[number]>(30);
@@ -47,9 +53,29 @@ export default function App() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [contextPack, setContextPack] = useState<string | null>(null);
-  const [clipboardEnabled, setClipboardEnabled] = useState(true);
+  const [contextPackMeta, setContextPackMeta] = useState({
+    title: "Context pack",
+    description: "Markdown ready for AI, teammates, or your own notes.",
+    defaultFilename: "thirty-minute-brain-context.md"
+  });
+  const clipboardEnabled = settings.clipboardEnabled;
   const [lastClipboardText, setLastClipboardText] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const updateSettings = useCallback(
+    (next: Partial<AppSettings>) => {
+      setSettings(settingsStore.update(next));
+    },
+    [settingsStore]
+  );
+
+  const setClipboardEnabled = useCallback(
+    (enabled: boolean | ((value: boolean) => boolean)) => {
+      const nextValue = typeof enabled === "function" ? enabled(settingsStore.get().clipboardEnabled) : enabled;
+      updateSettings({ clipboardEnabled: nextValue });
+    },
+    [settingsStore, updateSettings]
+  );
 
   const refreshEvents = useCallback(async () => {
     const options = {
@@ -127,6 +153,11 @@ export default function App() {
   };
 
   const handleContextPack = async () => {
+    setContextPackMeta({
+      title: "Context pack",
+      description: "Markdown ready for AI, teammates, or your own notes.",
+      defaultFilename: "thirty-minute-brain-context.md"
+    });
     setContextPack(
       await eventApi.generateContextPack({
         windowMinutes,
@@ -135,6 +166,16 @@ export default function App() {
         sensitiveOnly
       })
     );
+  };
+
+  const handleActivitySummary = () => {
+    const summary = summarizeRecentActivity(events);
+    setContextPackMeta({
+      title: "我刚才在干嘛",
+      description: "A local, rule-based summary of the visible recent timeline.",
+      defaultFilename: "thirty-minute-brain-activity-summary.md"
+    });
+    setContextPack(summary.markdown);
   };
 
   const stats = useMemo(
@@ -236,6 +277,10 @@ export default function App() {
                   <IconSparkles size={18} stroke={1.8} />
                   Context pack
                 </button>
+                <button className="secondary-button" type="button" onClick={handleActivitySummary}>
+                  <IconBrain size={18} stroke={1.8} />
+                  我刚才在干嘛
+                </button>
                 <button className="icon-button" type="button" onClick={refreshEvents} title="Refresh">
                   <IconRefresh size={18} stroke={1.8} />
                 </button>
@@ -273,7 +318,10 @@ export default function App() {
       </div>
 
       {isAddOpen ? <AddContextModal onClose={() => setIsAddOpen(false)} onSubmit={handleCreateManualEvent} /> : null}
-      {contextPack ? <ContextPackModal markdown={contextPack} onClose={() => setContextPack(null)} /> : null}
+      {contextPack ? <ContextPackModal markdown={contextPack} onClose={() => setContextPack(null)} {...contextPackMeta} /> : null}
+      {!settings.privacyNoticeAccepted ? (
+        <PrivacyNoticeModal onAccept={() => updateSettings({ privacyNoticeAccepted: true })} />
+      ) : null}
       {isSettingsOpen ? (
         <SettingsView
           clipboardEnabled={clipboardEnabled}

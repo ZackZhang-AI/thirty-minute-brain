@@ -5,10 +5,19 @@ import { IconCheck, IconCopy, IconDeviceFloppy, IconX } from "@tabler/icons-reac
 
 interface ContextPackModalProps {
   markdown: string;
+  title?: string;
+  description?: string;
+  defaultFilename?: string;
   onClose: () => void;
 }
 
-export function ContextPackModal({ markdown, onClose }: ContextPackModalProps) {
+export function ContextPackModal({
+  markdown,
+  title = "Context pack",
+  description = "Markdown ready for AI, teammates, or your own notes.",
+  defaultFilename = "thirty-minute-brain-context.md",
+  onClose
+}: ContextPackModalProps) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -20,7 +29,7 @@ export function ContextPackModal({ markdown, onClose }: ContextPackModalProps) {
   const saveMarkdown = async () => {
     if ("__TAURI_INTERNALS__" in window) {
       const path = await save({
-        defaultPath: "thirty-minute-brain-context.md",
+        defaultPath: defaultFilename,
         filters: [{ name: "Markdown", extensions: ["md"] }]
       });
       if (path) await writeTextFile(path, markdown);
@@ -31,7 +40,7 @@ export function ContextPackModal({ markdown, onClose }: ContextPackModalProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "thirty-minute-brain-context.md";
+    link.download = defaultFilename;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -41,8 +50,8 @@ export function ContextPackModal({ markdown, onClose }: ContextPackModalProps) {
       <div className="modal-panel max-w-3xl">
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Context pack</h2>
-            <p className="text-sm text-zinc-400">Markdown ready for AI, teammates, or your own notes.</p>
+            <h2 className="text-lg font-semibold">{title}</h2>
+            <p className="text-sm text-zinc-400">{description}</p>
           </div>
           <button className="icon-button" type="button" onClick={onClose} title="Close">
             <IconX size={18} stroke={1.8} />
