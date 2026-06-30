@@ -20,12 +20,14 @@ import type { MemoryEvent } from "../lib/types";
 
 interface EventCardProps {
   event: MemoryEvent;
+  selected?: boolean;
+  onSelectedChange?: (id: string) => void;
   onDelete: (id: string) => void;
   onPin: (id: string, pinned: boolean) => void;
   onUpdate: (id: string, input: { title?: string; note?: string | null }) => void;
 }
 
-export function EventCard({ event, onDelete, onPin, onUpdate }: EventCardProps) {
+export function EventCard({ event, selected = false, onSelectedChange, onDelete, onPin, onUpdate }: EventCardProps) {
   const Icon = iconForType(event.type);
   const [expanded, setExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +43,17 @@ export function EventCard({ event, onDelete, onPin, onUpdate }: EventCardProps) 
   };
 
   return (
-    <article className="group grid gap-3 p-4 transition hover:bg-zinc-800/35 sm:grid-cols-[76px_1fr_auto]">
+    <article className="group grid gap-3 p-4 transition hover:bg-zinc-800/35 sm:grid-cols-[32px_76px_1fr_auto]">
+      <div className="flex items-start justify-center pt-1">
+        <input
+          className="h-4 w-4 accent-emerald-400"
+          type="checkbox"
+          checked={selected}
+          onChange={() => onSelectedChange?.(event.id)}
+          aria-label={`Select ${event.title}`}
+        />
+      </div>
+
       <div className="text-sm tabular-nums text-zinc-500">
         <div className="text-zinc-300">{formatClock(event.createdAt)}</div>
         <div className="mt-1">{formatAgo(event.createdAt)}</div>

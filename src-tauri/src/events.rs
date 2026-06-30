@@ -66,6 +66,19 @@ pub fn get_event(connection: &Connection, id: &str) -> rusqlite::Result<MemoryEv
     connection.query_row(&select_sql("WHERE id = ?1"), params![id], row_to_event)
 }
 
+pub fn get_events_by_ids(connection: &Connection, ids: &[String]) -> rusqlite::Result<Vec<MemoryEvent>> {
+    let mut events = Vec::new();
+    for id in ids {
+        if let Some(event) = connection
+            .query_row(&select_sql("WHERE id = ?1"), params![id], row_to_event)
+            .optional()?
+        {
+            events.push(event);
+        }
+    }
+    Ok(events)
+}
+
 pub fn list_recent_events(
     connection: &Connection,
     window_minutes: i64,

@@ -197,17 +197,21 @@ pub fn generate_context_pack(
     types: Option<Vec<String>>,
     sensitive_only: Option<bool>,
     include_pinned: Option<bool>,
+    selected_ids: Option<Vec<String>>,
     state: State<'_, AppState>,
 ) -> Result<String, String> {
     let connection = state.connection.lock().expect("database lock poisoned");
-    let recent = events::list_recent_events(
-        &connection,
-        window_minutes.unwrap_or(30),
-        types,
-        sensitive_only,
-        include_pinned.or(Some(true)),
-    )
-    .map_err(|error| error.to_string())?;
+    let recent = match selected_ids {
+        Some(ids) if !ids.is_empty() => events::get_events_by_ids(&connection, &ids).map_err(|error| error.to_string())?,
+        _ => events::list_recent_events(
+            &connection,
+            window_minutes.unwrap_or(30),
+            types,
+            sensitive_only,
+            include_pinned.or(Some(true)),
+        )
+        .map_err(|error| error.to_string())?,
+    };
     Ok(context_pack::generate_context_pack(&recent))
 }
 

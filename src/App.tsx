@@ -4,12 +4,14 @@ import {
   IconBrain,
   IconClipboard,
   IconClock,
+  IconChecklist,
   IconFilePlus,
   IconFolder,
   IconNotes,
   IconRefresh,
   IconSettings,
-  IconSparkles
+  IconSparkles,
+  IconTrash
 } from "@tabler/icons-react";
 import { AddContextModal } from "./components/AddContextModal";
 import { ContextPackModal } from "./components/ContextPackModal";
@@ -20,6 +22,13 @@ import { SearchBar } from "./components/SearchBar";
 import { SettingsView } from "./components/SettingsView";
 import { summarizeRecentActivity } from "./lib/activitySummary";
 import { eventApi } from "./lib/api";
+import {
+  clearSelection,
+  getSelectionSummary,
+  pruneSelection,
+  selectAllVisible,
+  toggleSelection
+} from "./lib/selection";
 import { createSettingsStore } from "./lib/settings";
 import type { AppSettings } from "./lib/settings";
 import type { ContextPackTemplate, EventType, MemoryEvent, NewManualEventInput } from "./lib/types";
@@ -58,6 +67,7 @@ export default function App() {
     description: "Markdown ready for AI, teammates, or your own notes.",
     defaultFilename: "thirty-minute-brain-context.md"
   });
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const clipboardEnabled = settings.clipboardEnabled;
   const [lastClipboardText, setLastClipboardText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +100,12 @@ export default function App() {
   useEffect(() => {
     refreshEvents().catch((caught) => setError(String(caught)));
   }, [refreshEvents]);
+
+  const visibleEventIds = useMemo(() => events.map((event) => event.id), [events]);
+
+  useEffect(() => {
+    setSelectedIds((current) => pruneSelection(current, visibleEventIds));
+  }, [visibleEventIds]);
 
   useEffect(() => {
     if (!("__TAURI_INTERNALS__" in window)) return;
@@ -139,6 +155,14 @@ export default function App() {
 
   const handleDelete = async (id: string) => {
     await eventApi.deleteEvent(id);
+    setSelectedIds((current) => current.filter((selectedId) => selectedId !== id));
+    await refreshEvents();
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    await eventApi.deleteEvents(selectedIds);
+    setSelectedIds(clearSelection());
     await refreshEvents();
   };
 
@@ -162,6 +186,7 @@ export default function App() {
       await eventApi.generateContextPack({
         windowMinutes,
         template: contextTemplate,
+        selectedIds: selectedIds.length ? selectedIds : undefined,
         types: typeFilter === "all" ? undefined : [typeFilter],
         sensitiveOnly
       })
@@ -273,9 +298,18 @@ export default function App() {
                   <IconFilePlus size={18} stroke={1.8} />
                   Add context
                 </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setSelectedIds((current) => selectAllVisible(current, visibleEventIds))}
+                  disabled={visibleEventIds.length === 0}
+                >
+                  <IconChecklist size={18} stroke={1.8} />
+                  Select visible
+                </button>
                 <button className="secondary-button" type="button" onClick={handleContextPack}>
                   <IconSparkles size={18} stroke={1.8} />
-                  Context pack
+                  {selectedIds.length ? "Pack selected" : "Context pack"}
                 </button>
                 <button className="secondary-button" type="button" onClick={handleActivitySummary}>
                   <IconBrain size={18} stroke={1.8} />
@@ -289,13 +323,44 @@ export default function App() {
 
             {error ? <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">{error}</div> : null}
 
+            {selectedIds.length ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-2">
+                <span className="text-sm font-medium text-emerald-100">{getSelectionSummary(selectedIds)}</span>
+                <div className="flex flex-wrap gap-2">
+                  <button className="secondary-button" type="button" onClick={() => setSelectedIds(clearSelection())}>
+                    Clear selection
+                  </button>
+                  <button className="secondary-button" type="button" onClick={handleContextPack}>
+                    <IconSparkles size={18} stroke={1.8} />
+                    Context from selected
+                  </button>
+                  <button
+                    className="flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 text-sm font-semibold text-red-100 transition hover:bg-red-500/20"
+                    type="button"
+                    onClick={handleDeleteSelected}
+                  >
+                    <IconTrash size={18} stroke={1.8} />
+                    Delete selected
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="min-h-[420px] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/80">
               {events.length === 0 ? (
                 <EmptyState />
               ) : (
                 <div className="divide-y divide-zinc-800">
                   {events.map((event) => (
-                    <EventCard key={event.id} event={event} onDelete={handleDelete} onPin={handlePin} onUpdate={handleUpdate} />
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      selected={selectedIds.includes(event.id)}
+                      onSelectedChange={(id) => setSelectedIds((current) => toggleSelection(current, id))}
+                      onDelete={handleDelete}
+                      onPin={handlePin}
+                      onUpdate={handleUpdate}
+                    />
                   ))}
                 </div>
               )}
