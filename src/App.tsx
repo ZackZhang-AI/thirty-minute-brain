@@ -22,6 +22,7 @@ import { SearchBar } from "./components/SearchBar";
 import { SettingsView } from "./components/SettingsView";
 import { summarizeRecentActivity } from "./lib/activitySummary";
 import { eventApi } from "./lib/api";
+import { canCaptureClipboard } from "./lib/capturePolicy";
 import { generateSharePackage } from "./lib/sharePackage";
 import {
   clearSelection,
@@ -70,6 +71,7 @@ export default function App() {
   });
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const clipboardEnabled = settings.clipboardEnabled;
+  const clipboardCaptureActive = canCaptureClipboard(settings);
   const [lastClipboardText, setLastClipboardText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -131,7 +133,7 @@ export default function App() {
   }, [refreshEvents]);
 
   useEffect(() => {
-    if (!clipboardEnabled) return;
+    if (!clipboardCaptureActive) return;
 
     const timer = window.setInterval(async () => {
       try {
@@ -146,7 +148,7 @@ export default function App() {
     }, 1200);
 
     return () => window.clearInterval(timer);
-  }, [clipboardEnabled, lastClipboardText, refreshEvents]);
+  }, [clipboardCaptureActive, lastClipboardText, refreshEvents]);
 
   const handleCreateManualEvent = async (input: NewManualEventInput) => {
     await eventApi.createManualEvent(input);
@@ -244,7 +246,7 @@ export default function App() {
               title="Toggle clipboard capture"
             >
               <IconClipboard size={18} stroke={1.8} />
-              {clipboardEnabled ? "Clipboard on" : "Clipboard off"}
+              {clipboardCaptureActive ? "Clipboard on" : "Clipboard off"}
             </button>
             <button className="toolbar-button" type="button" onClick={() => setIsSettingsOpen(true)} title="Settings">
               <IconSettings size={18} stroke={1.8} />
