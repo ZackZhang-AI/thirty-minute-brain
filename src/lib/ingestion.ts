@@ -14,6 +14,18 @@ const SUPPORTED_EVENT_TYPES = new Set<EventType>([
 
 const URL_REQUIRED_TYPES = new Set<EventType>(["link", "browser_tab"]);
 const PATH_REQUIRED_TYPES = new Set<EventType>(["file", "screenshot", "editor_file"]);
+const CONTENT_REQUIRED_TYPES = new Set<EventType>(["clipboard", "note", "editor_selection", "command"]);
+
+const SOURCE_POLICY: Record<string, ReadonlySet<EventType>> = {
+  manual: new Set(["file", "link", "note"]),
+  clipboard: new Set(["clipboard"]),
+  watched_folder: new Set(["screenshot"]),
+  browser_extension: new Set(["browser_tab"]),
+  vscode_extension: new Set(["editor_file", "editor_selection"]),
+  shell_hook: new Set(["command"])
+};
+
+const TERMINAL_OUTPUT_METADATA_KEYS = new Set(["stdout", "stderr", "output", "commandOutput", "combinedOutput"]);
 
 export function normalizeCreateEventRequest(input: CreateEventRequest): CreateEventRequest {
   if (!SUPPORTED_EVENT_TYPES.has(input.type)) {
@@ -31,12 +43,18 @@ export function normalizeCreateEventRequest(input: CreateEventRequest): CreateEv
     throw new Error("CreateEventRequest requires source");
   }
 
+  assertSourceCanCreate(source, input.type);
+
   if (URL_REQUIRED_TYPES.has(input.type) && !url) {
     throw new Error(`${input.type} requires url`);
   }
 
   if (PATH_REQUIRED_TYPES.has(input.type) && !path) {
     throw new Error(`${input.type} requires path`);
+  }
+
+  if (CONTENT_REQUIRED_TYPES.has(input.type) && !content) {
+    throw new Error(`${input.type} requires content`);
   }
 
   return {
@@ -47,8 +65,19 @@ export function normalizeCreateEventRequest(input: CreateEventRequest): CreateEv
     path,
     url,
     note,
-    metadataJson: mergeMetadata(input.metadataJson, source)
+    metadataJson: mergeMetadata(input.metadataJson, source, input.type)
   };
+}
+
+function assertSourceCanCreate(source: string, type: EventType): void {
+  const allowedTypes = SOURCE_POLICY[source];
+  if (!allowedTypes) {
+    throw new Error(`Unauthorized event source: ${source}`);
+  }
+
+  if (!allowedTypes.has(type)) {
+    throw new Error(`${source} cannot create ${type} events`);
+  }
 }
 
 function fallbackTitle(input: CreateEventRequest): string {
@@ -58,7 +87,7 @@ function fallbackTitle(input: CreateEventRequest): string {
   return "Untitled event";
 }
 
-function mergeMetadata(metadataJson: string | undefined, source: string): string {
+function mergeMetadata(metadataJson: string | undefined, source: string, type: EventType): string {
   let metadata: Record<string, unknown> = {};
 
   if (metadataJson) {
@@ -72,10 +101,18 @@ function mergeMetadata(metadataJson: string | undefined, source: string): string
     }
   }
 
+  if (type === "command") {
+    metadata = stripTerminalOutputMetadata(metadata);
+  }
+
   return JSON.stringify({
     ...metadata,
     source
   });
+}
+
+function stripTerminalOutputMetadata(metadata: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(metadata).filter(([key]) => !TERMINAL_OUTPUT_METADATA_KEYS.has(key)));
 }
 
 function fileNameFromPath(path: string): string {

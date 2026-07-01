@@ -1,0 +1,44 @@
+{
+  "name": "thirty-minute-brain-vscode",
+  "displayName": "Thirty-Minute Brain",
+  "description": "Send the current file or selected text to Thirty-Minute Brain.",
+  "version": "0.1.0",
+  "publisher": "thirty-minute-brain",
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "activationEvents": [
+    "onCommand:thirtyMinuteBrain.captureCurrentFile",
+    "onCommand:thirtyMinuteBrain.captureSelection"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "thirtyMinuteBrain.captureCurrentFile",
+        "title": "Thirty-Minute Brain: Capture Current File"
+      },
+      {
+        "command": "thirtyMinuteBrain.captureSelection",
+        "title": "Thirty-Minute Brain: Capture Selection"
+      }
+    ],
+    "configuration": {
+      "title": "Thirty-Minute Brain",
+      "properties": {
+        "thirtyMinuteBrain.ingestUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:38330/ingest"
+        },
+        "thirtyMinuteBrain.ingestionToken": {
+          "type": "string",
+          "default": ""
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.92.0",
+    "typescript": "^5.9.3"
+  }
+}

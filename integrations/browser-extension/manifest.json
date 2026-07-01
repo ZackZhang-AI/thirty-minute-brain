@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Thirty-Minute Brain Capture",
+  "version": "0.1.0",
+  "description": "Save the current active tab to Thirty-Minute Brain.",
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["http://127.0.0.1:38330/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Save current tab"
+  }
+}

@@ -104,4 +104,29 @@ describe("createLocalEventStore", () => {
     expect(status.eventCount).toBe(1);
     expect(status.disallowedSources).toContain("browser_history");
   });
+
+  it("deduplicates identical external ingestion events", async () => {
+    const store = createLocalEventStore();
+
+    const first = await store.createEvent({
+      type: "browser_tab",
+      title: "Stripe docs",
+      url: "https://stripe.com/docs",
+      source: "browser_extension",
+      metadataJson: JSON.stringify({ browser: "chrome" })
+    });
+    const duplicate = await store.createEvent({
+      type: "browser_tab",
+      title: "Stripe docs",
+      url: "https://stripe.com/docs",
+      source: "browser_extension",
+      metadataJson: JSON.stringify({ browser: "chrome" })
+    });
+
+    const events = await store.listRecentEvents({ windowMinutes: 30 });
+
+    expect(duplicate.id).toBe(first.id);
+    expect(events).toHaveLength(1);
+    expect(events[0].contentHash).toBeTruthy();
+  });
 });

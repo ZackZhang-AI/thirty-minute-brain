@@ -3,17 +3,36 @@ use crate::events;
 use crate::models::{CreateEventRequest, EventUpdateInput, MemoryEvent, NewEvent, NewManualEventInput, PrivacyStatus, WatchedFolder};
 use crate::sensitive;
 use crate::watcher;
+use serde_json::{json, Value};
 use tauri::{AppHandle, State};
 
 use crate::events::AppState;
 
 #[tauri::command]
 pub fn create_event(input: CreateEventRequest, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+    create_event_inner(input, state)
+}
+
+#[tauri::command]
+pub fn ingest_external_event(input: CreateEventRequest, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+    create_event_inner(input, state)
+}
+
+fn create_event_inner(input: CreateEventRequest, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+    validate_ingestion_source(&input)?;
+    validate_required_fields(&input)?;
+
     let filtered = input
         .content
         .as_deref()
         .map(sensitive::filter_sensitive_content);
+    let content_hash = events::sha256_hex(&stable_event_hash_input(&input));
+    let metadata_json = sanitize_metadata(input.metadata_json.as_deref(), &input.source, &input.event_type);
     let connection = state.connection.lock().expect("database lock poisoned");
+    if let Some(existing) = events::find_event_by_hash(&connection, &content_hash).map_err(|error| error.to_string())? {
+        return Ok(existing);
+    }
+
     events::create_event(
         &connection,
         NewEvent {
@@ -31,13 +50,75 @@ pub fn create_event(input: CreateEventRequest, state: State<'_, AppState>) -> Re
             path: input.path,
             url: input.url,
             note: input.note,
-            metadata_json: input.metadata_json,
-            content_hash: None,
+            metadata_json,
+            content_hash: Some(content_hash),
             sensitive_flag: filtered.as_ref().map(|result| result.sensitive).unwrap_or(false),
             sensitive_reason: filtered.and_then(|result| result.reason),
         },
     )
     .map_err(|error| error.to_string())
+}
+
+fn validate_ingestion_source(input: &CreateEventRequest) -> Result<(), String> {
+    let allowed = match input.source.as_str() {
+        "manual" => &["file", "link", "note"][..],
+        "clipboard" => &["clipboard"][..],
+        "watched_folder" => &["screenshot"][..],
+        "browser_extension" => &["browser_tab"][..],
+        "vscode_extension" => &["editor_file", "editor_selection"][..],
+        "shell_hook" => &["command"][..],
+        other => return Err(format!("Unauthorized event source: {}", other)),
+    };
+
+    if allowed.contains(&input.event_type.as_str()) {
+        Ok(())
+    } else {
+        Err(format!("{} cannot create {} events", input.source, input.event_type))
+    }
+}
+
+fn validate_required_fields(input: &CreateEventRequest) -> Result<(), String> {
+    match input.event_type.as_str() {
+        "browser_tab" | "link" if input.url.as_deref().unwrap_or("").trim().is_empty() => {
+            Err(format!("{} requires url", input.event_type))
+        }
+        "file" | "screenshot" | "editor_file" if input.path.as_deref().unwrap_or("").trim().is_empty() => {
+            Err(format!("{} requires path", input.event_type))
+        }
+        "clipboard" | "note" | "editor_selection" | "command" if input.content.as_deref().unwrap_or("").trim().is_empty() => {
+            Err(format!("{} requires content", input.event_type))
+        }
+        _ => Ok(()),
+    }
+}
+
+fn stable_event_hash_input(input: &CreateEventRequest) -> String {
+    json!({
+        "type": &input.event_type,
+        "title": &input.title,
+        "content": input.content.clone().unwrap_or_default(),
+        "path": input.path.clone().unwrap_or_default(),
+        "url": input.url.clone().unwrap_or_default(),
+        "note": input.note.clone().unwrap_or_default(),
+        "source": &input.source,
+    })
+    .to_string()
+}
+
+fn sanitize_metadata(metadata_json: Option<&str>, source: &str, event_type: &str) -> Option<String> {
+    let mut metadata = metadata_json
+        .and_then(|raw| serde_json::from_str::<Value>(raw).ok())
+        .and_then(|value| value.as_object().cloned())
+        .unwrap_or_default();
+
+    if event_type == "command" {
+        for key in ["stdout", "stderr", "output", "commandOutput", "combinedOutput"] {
+            metadata.remove(key);
+        }
+    }
+
+    metadata.insert("source".to_string(), Value::String(source.to_string()));
+    serde_json::to_string(&metadata).ok()
 }
 
 #[tauri::command]
@@ -224,7 +305,14 @@ pub fn get_privacy_status(state: State<'_, AppState>) -> Result<PrivacyStatus, S
         retention_hours: 24,
         database_path: state.db_path.clone(),
         event_count,
-        enabled_sources: vec!["manual".to_string(), "clipboard".to_string(), "watched_folder".to_string()],
+        enabled_sources: vec![
+            "manual".to_string(),
+            "clipboard".to_string(),
+            "watched_folder".to_string(),
+            "browser_extension".to_string(),
+            "vscode_extension".to_string(),
+            "shell_hook".to_string(),
+        ],
         disallowed_sources: vec![
             "browser_history".to_string(),
             "terminal_history".to_string(),

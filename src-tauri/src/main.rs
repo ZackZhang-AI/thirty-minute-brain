@@ -47,6 +47,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::create_event,
+            commands::ingest_external_event,
             commands::create_manual_event,
             commands::create_clipboard_event,
             commands::list_recent_events,

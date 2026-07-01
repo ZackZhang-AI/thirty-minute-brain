@@ -84,6 +84,10 @@ export function createLocalEventStore(options: LocalStoreOptions = {}): EventSto
   const store: EventStore = {
     async createEvent(input) {
       const normalized = normalizeCreateEventRequest(input);
+      const contentHash = await sha256(stableEventHashInput(normalized));
+      const existing = events.find((event) => event.contentHash === contentHash);
+      if (existing) return existing;
+
       const filtered = normalized.content ? filterSensitiveContent(normalized.content) : null;
       return save(
         createBaseEvent({
@@ -95,6 +99,7 @@ export function createLocalEventStore(options: LocalStoreOptions = {}): EventSto
           note: normalized.note ?? null,
           source: normalized.source,
           metadataJson: normalized.metadataJson ?? null,
+          contentHash,
           sensitiveFlag: filtered?.sensitive ?? false,
           sensitiveReason: filtered?.reason ?? null
         })
@@ -236,7 +241,7 @@ export function createLocalEventStore(options: LocalStoreOptions = {}): EventSto
         retentionHours: 24,
         databasePath: "Browser preview memory store",
         eventCount: events.length,
-        enabledSources: ["manual", "clipboard", "watched_folder"],
+        enabledSources: ["manual", "clipboard", "watched_folder", "browser_extension", "vscode_extension", "shell_hook"],
         disallowedSources: ["browser_history", "terminal_history", "chat_apps"]
       };
     }
@@ -277,6 +282,18 @@ function safeUrlHost(value: string): string | null {
   } catch {
     return null;
   }
+}
+
+function stableEventHashInput(input: CreateEventRequest): string {
+  return JSON.stringify({
+    type: input.type,
+    title: input.title,
+    content: input.content ?? "",
+    path: input.path ?? "",
+    url: input.url ?? "",
+    note: input.note ?? "",
+    source: input.source
+  });
 }
 
 async function sha256(value: string): Promise<string> {
