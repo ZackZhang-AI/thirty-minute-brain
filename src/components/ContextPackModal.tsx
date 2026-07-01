@@ -27,16 +27,17 @@ export function ContextPackModal({
   };
 
   const saveMarkdown = async () => {
+    const isJson = defaultFilename.endsWith(".json");
     if ("__TAURI_INTERNALS__" in window) {
       const path = await save({
         defaultPath: defaultFilename,
-        filters: [{ name: "Markdown", extensions: ["md"] }]
+        filters: [{ name: isJson ? "JSON" : "Markdown", extensions: [isJson ? "json" : "md"] }]
       });
       if (path) await writeTextFile(path, markdown);
       return;
     }
 
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const blob = new Blob([markdown], { type: isJson ? "application/json;charset=utf-8" : "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;

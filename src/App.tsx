@@ -22,6 +22,7 @@ import { SearchBar } from "./components/SearchBar";
 import { SettingsView } from "./components/SettingsView";
 import { summarizeRecentActivity } from "./lib/activitySummary";
 import { eventApi } from "./lib/api";
+import { generateSharePackage } from "./lib/sharePackage";
 import {
   clearSelection,
   getSelectionSummary,
@@ -193,6 +194,15 @@ export default function App() {
     );
   };
 
+  const handleSharePackage = (format: "json" | "bug_report") => {
+    setContextPackMeta({
+      title: format === "json" ? "JSON share package" : "Bug report package",
+      description: "Sensitive event contents are redacted before export.",
+      defaultFilename: format === "json" ? "thirty-minute-brain-share.json" : "thirty-minute-brain-bug-report.md"
+    });
+    setContextPack(generateSharePackage(events, { format, selectedIds: selectedIds.length ? selectedIds : undefined }));
+  };
+
   const handleActivitySummary = () => {
     const summary = summarizeRecentActivity(events);
     setContextPackMeta({
@@ -315,6 +325,12 @@ export default function App() {
                   <IconBrain size={18} stroke={1.8} />
                   我刚才在干嘛
                 </button>
+                <button className="secondary-button" type="button" onClick={() => handleSharePackage("json")}>
+                  JSON
+                </button>
+                <button className="secondary-button" type="button" onClick={() => handleSharePackage("bug_report")}>
+                  Bug report
+                </button>
                 <button className="icon-button" type="button" onClick={refreshEvents} title="Refresh">
                   <IconRefresh size={18} stroke={1.8} />
                 </button>
@@ -390,7 +406,9 @@ export default function App() {
       ) : null}
       {isSettingsOpen ? (
         <SettingsView
+          settings={settings}
           clipboardEnabled={clipboardEnabled}
+          onSettingsChange={updateSettings}
           onClipboardEnabledChange={setClipboardEnabled}
           onClose={() => setIsSettingsOpen(false)}
           onClearWindow={async (minutes) => {

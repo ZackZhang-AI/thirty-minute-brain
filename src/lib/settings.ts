@@ -1,7 +1,14 @@
+import { createDefaultPermissionSettings } from "./permissions";
+import type { PermissionSettings } from "./permissions";
+
 export interface AppSettings {
   clipboardEnabled: boolean;
   retentionHours: number;
   privacyNoticeAccepted: boolean;
+  ingestionToken: string;
+  permissions: PermissionSettings;
+  cloudSyncEnabled: boolean;
+  language: "zh-CN" | "en-US";
 }
 
 export interface SettingsStorage {
@@ -22,7 +29,11 @@ interface SettingsStoreOptions {
 export const DEFAULT_SETTINGS: AppSettings = {
   clipboardEnabled: true,
   retentionHours: 24,
-  privacyNoticeAccepted: false
+  privacyNoticeAccepted: false,
+  ingestionToken: "",
+  permissions: createDefaultPermissionSettings(),
+  cloudSyncEnabled: false,
+  language: "zh-CN"
 };
 
 const DEFAULT_KEY = "thirty-minute-brain.settings";
@@ -57,10 +68,21 @@ function readSettings(storage: SettingsStorage | null, key: string): AppSettings
 }
 
 function sanitizeSettings(value: AppSettings): AppSettings {
+  const defaults = createDefaultPermissionSettings();
   return {
     clipboardEnabled: Boolean(value.clipboardEnabled),
     retentionHours: Number.isFinite(value.retentionHours) && value.retentionHours > 0 ? value.retentionHours : 24,
-    privacyNoticeAccepted: Boolean(value.privacyNoticeAccepted)
+    privacyNoticeAccepted: Boolean(value.privacyNoticeAccepted),
+    ingestionToken: typeof value.ingestionToken === "string" ? value.ingestionToken : "",
+    permissions: {
+      globalPaused: Boolean(value.permissions?.globalPaused),
+      sources: {
+        ...defaults.sources,
+        ...(value.permissions?.sources ?? {})
+      }
+    },
+    cloudSyncEnabled: Boolean(value.cloudSyncEnabled),
+    language: value.language === "en-US" ? "en-US" : "zh-CN"
   };
 }
 
