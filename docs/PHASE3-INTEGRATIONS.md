@@ -27,13 +27,42 @@ interface CreateEventRequest {
 - `src/lib/tauriIngestionApi.ts`：Tauri runtime 接入 API，先经过前端 gateway，再调用 Rust `ingest_external_event` 写入 SQLite。
 - `src/lib/deepLink.ts`：解析 `thirty-minute-brain://ingest?token=...&payload=...`。
 - `src/lib/deepLinkIngestion.ts`：把 deep link 字符串解析后路由到统一 ingestion API。
-- `src/lib/api.ts`：导出 `ingestionApi.ingestExternalEvent` 和 `ingestionApi.ingestDeepLink`，浏览器预览写本地 store，Tauri runtime 写 SQLite。
+- `src/lib/loopbackIngestion.ts`：解析 `POST /ingest` 请求、token header、JSON body、CORS preflight，并路由到统一 ingestion API。
+- `src/lib/api.ts`：导出 `ingestionApi.ingestExternalEvent`、`ingestionApi.ingestDeepLink`、`ingestionApi.handleLoopbackRequest`，浏览器预览写本地 store，Tauri runtime 写 SQLite。
 - Tauri command 雏形：`ingest_external_event`。
 
 下一步原生接入：
 
-- 启用本地 loopback endpoint：`POST http://127.0.0.1:38330/ingest`。
+- 启动真实本地 loopback server，并把 socket 请求转给 `ingestionApi.handleLoopbackRequest`。
 - 在桌面端注册 deep link scheme。
+
+## Loopback HTTP 格式
+
+```text
+POST http://127.0.0.1:38330/ingest
+```
+
+请求头：
+
+```text
+content-type: application/json
+x-thirty-minute-brain-token: <local-token>
+```
+
+也支持：
+
+```text
+authorization: Bearer <local-token>
+```
+
+响应：
+
+- `201`：写入成功，返回 `{ "event": ... }`。
+- `400`：JSON 或事件字段无效。
+- `401`：缺少或错误 token。
+- `403`：来源被禁用、全局暂停或 source/type 不匹配。
+- `404`：不支持的路径。
+- `405`：不支持的方法。
 
 ## Deep Link 格式
 

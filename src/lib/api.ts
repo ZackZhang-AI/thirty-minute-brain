@@ -1,10 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 import { ingestDeepLink } from "./deepLinkIngestion";
 import { createExternalIngestionApi } from "./externalIngestionApi";
+import { handleLoopbackIngestionRequest } from "./loopbackIngestion";
 import { createLocalEventStore } from "./localStore";
 import { createSettingsStore } from "./settings";
 import { createTauriIngestionApi } from "./tauriIngestionApi";
 import type { ExternalIngestRequest } from "./ingestionGateway";
+import type { LoopbackIngestionRequest, LoopbackIngestionResponse } from "./loopbackIngestion";
 import type { EventStore } from "./localStore";
 import type {
   ClearEventsOptions,
@@ -117,6 +119,10 @@ export const ingestionApi = {
 
   async ingestDeepLink(value: string): Promise<MemoryEvent> {
     return ingestDeepLink(value, ingestionApi);
+  },
+
+  async handleLoopbackRequest(request: LoopbackIngestionRequest): Promise<LoopbackIngestionResponse> {
+    return handleLoopbackIngestionRequest(request, ingestionApi);
   }
 };
 

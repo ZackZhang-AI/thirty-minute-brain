@@ -59,6 +59,7 @@
 - `ingestionGateway`：token 校验、权限检查、全局暂停、来源/类型白名单、敏感过滤、去重、写入回调。
 - `deepLink` payload 解析：`thirty-minute-brain://ingest?token=...&payload=...`。
 - `deepLinkIngestion`：解析 deep link 后路由到统一 ingestion API。
+- `loopbackIngestion`：解析 `POST /ingest`、token header、JSON body、CORS preflight 和错误状态码。
 - Tauri runtime 外部接入：前端 gateway 校验后调用 Rust `ingest_external_event` 写 SQLite。
 - 多个 settings store 共享同一 storage 时保持同步，确保权限中心修改后 API 能读到最新 token/来源开关。
 - 分享包导出：Markdown、JSON、Bug report，并默认脱敏。
@@ -67,7 +68,7 @@
 当前已知限制：
 
 - 本机 Windows 原生 Tauri 构建仍依赖 MSVC Build Tools；缺少 `link.exe` 时无法完成 Rust 原生编译。
-- loopback HTTP ingestion endpoint 尚未真正运行，仅完成协议、gateway 和集成脚手架。
+- loopback HTTP ingestion handler 已完成，但尚未启动真实本地 socket server。
 - OCR 尚未实现。
 - 端到端加密同步、自动更新、签名与发布流水线尚未实现。
 
@@ -348,7 +349,7 @@ thirty-minute-brain://ingest?token=<local-token>&payload=<base64url-json>
 
 短期优先级：
 
-1. 完成 loopback HTTP ingestion endpoint。
+1. 启动真实本地 loopback server，并把 socket 请求转给 `ingestionApi.handleLoopbackRequest`。
 2. 注册 Tauri deep link scheme，并把系统 deep link 事件交给 `ingestionApi.ingestDeepLink`。
 3. 让浏览器插件、VS Code 插件、shell hook 使用 token + deep link/loopback 协议。
 4. 在权限中心展示真实 `lastWriteAt`。
