@@ -1,112 +1,122 @@
 # Thirty-Minute Brain
 
-Local-first desktop memory for the last 30 minutes of work.
+Thirty-Minute Brain 是一个本地优先的桌面短期记忆工具，用来找回最近 30 分钟复制过、打开过、保存过或手动添加过的东西。
 
-Thirty-Minute Brain is a Tauri + React app that helps you find things you just copied, opened, saved, or manually added. It is designed as a short-term memory cache, not a long-term note app.
+它是 Recently Seen Search，不是长期笔记软件。
 
-## Current Features
+## 当前功能
 
-- Timeline for the last 30 minutes, with a 24 hour view.
-- Full-text search across title, content, path, URL, and note.
-- Manual context events for text, links, and file paths.
-- Clipboard text capture when enabled.
-- Screenshot folder monitoring for `png`, `jpg`, `jpeg`, and `webp`.
-- Sensitive content filtering before save.
-- Pin events so they are not removed by retention cleanup.
-- Edit event title and note.
-- Delete one event, batch-delete through the API, clear all, or clear a time window.
-- Context pack export as Markdown with AI, teammate handoff, bug report, and meeting templates.
-- Local privacy status in Settings.
-- Tauri tray menu and `Ctrl+Shift+Space` global shortcut.
+- 最近 30 分钟时间线，并支持切换 24 小时视图。
+- 搜索标题、内容、路径、URL 和备注。
+- 手动添加文本、链接、文件路径。
+- 剪贴板文本捕获。
+- 截图文件夹监控，支持 `png`、`jpg`、`jpeg`、`webp`。
+- 写入前敏感内容过滤。
+- 事件置顶，置顶事件不会被过期清理删除。
+- 编辑事件标题和备注。
+- 单条删除、批量删除、清空全部、按时间窗口清理。
+- Markdown 上下文包，支持 AI、同事交接、Bug report、会议回顾模板。
+- JSON 和 Bug report 分享包导出。
+- 本地规则版“我刚才在干嘛”总结。
+- 权限中心：来源开关、全局暂停、本地 ingestion token。
+- Phase 3 接入脚手架：浏览器插件、VS Code 插件、PowerShell/bash/zsh hook。
+- 外部 ingestion gateway：token 校验、权限检查、敏感过滤、去重、写入回调。
+- Deep link payload 解析：`thirty-minute-brain://ingest?token=...&payload=...`。
+- Tauri 托盘菜单和 `Ctrl+Shift+Space` 全局快捷键。
 
-## Privacy Boundary
+## 隐私边界
 
-The app is local-only by default.
+默认本地保存，不上传。
 
-It does not automatically read:
+不会自动读取：
 
-- Browser history
-- Terminal history
-- Chat app content
-- Whole-file-system activity
+- 浏览器完整历史。
+- 终端历史文件。
+- 命令输出。
+- 聊天软件内容。
+- 全盘文件活动。
 
-Browser, VS Code, and terminal integrations are future opt-in sources. They should send only explicit current context into the local ingestion API.
+外部接入必须由用户显式启用：
 
-Sensitive-looking content is skipped before persistence. The app stores the event title `敏感内容已跳过` and a non-secret reason such as `secret-keyword`, `credit-card`, or `openai-key`.
+- 浏览器插件只同步当前 active tab 标题和 URL。
+- VS Code 插件只同步当前文件和用户主动发送的 selection。
+- Shell hook 只记录命令文本。
 
-## Local Development
+疑似敏感内容会在写入前跳过原文，只记录标题 `敏感内容已跳过` 和非敏感原因，例如 `secret-keyword`、`credit-card`、`openai-key`。
 
-Install JavaScript dependencies:
+## 本地开发
+
+安装依赖：
 
 ```powershell
 npm.cmd install
 ```
 
-Run the browser preview:
+启动浏览器预览：
 
 ```powershell
 npm.cmd run dev
 ```
 
-Run tests:
+运行测试：
 
 ```powershell
 npm.cmd test
 ```
 
-Build the frontend:
+构建前端：
 
 ```powershell
 npm.cmd run build
 ```
 
-## Tauri Native Requirements on Windows
+## Windows Tauri 原生依赖
 
-Tauri desktop builds require:
+Tauri 桌面构建需要：
 
 - WebView2
 - Rust/rustup/Cargo
-- Visual Studio Build Tools 2022 with the C++ workload
+- Visual Studio Build Tools 2022，包含 C++ workload
 - Windows SDK
 
-Rust can be installed with:
+安装 Rust：
 
 ```powershell
 winget install --id Rustlang.Rustup -e --silent --accept-package-agreements --accept-source-agreements
 ```
 
-Visual Studio Build Tools usually requires an elevated or interactive install:
+安装 Visual Studio Build Tools：
 
 ```powershell
 winget install --id Microsoft.VisualStudio.2022.BuildTools -e --accept-package-agreements --accept-source-agreements
 ```
 
-During installation, include the Desktop development with C++ workload, MSVC, and Windows SDK.
+安装时选择 Desktop development with C++、MSVC 和 Windows SDK。
 
-Run Tauri diagnostics:
+查看 Tauri 信息：
 
 ```powershell
 npm.cmd run tauri -- info
 ```
 
-Run the desktop app:
+启动桌面应用：
 
 ```powershell
 npm.cmd run tauri -- dev
 ```
 
-Create a Windows build:
+创建 Windows 构建：
 
 ```powershell
 npm.cmd run tauri -- build
 ```
 
-## Architecture
+## 架构
 
-- Frontend: React, TypeScript, Tailwind CSS, Vite
-- Desktop shell: Tauri 2
-- Persistence: SQLite through Rust `rusqlite`
-- File watching: Rust `notify`
-- Search: SQLite FTS5 with LIKE fallback
-- Privacy filter: local regex and Luhn checks
-
+- Frontend：React、TypeScript、Tailwind CSS、Vite
+- Desktop shell：Tauri 2
+- Persistence：SQLite through Rust `rusqlite`
+- File watching：Rust `notify`
+- Search：当前本地搜索，后续升级 SQLite FTS5
+- Privacy filter：本地正则、高熵检测和 Luhn 校验
+- External ingestion：`CreateEventRequest` + token + permission gateway + optional deep link

@@ -9,6 +9,8 @@ pub struct SensitiveResult {
     pub reason: Option<String>,
 }
 
+pub const SENSITIVE_CONTENT_PLACEHOLDER: &str = "敏感内容已跳过";
+
 static SECRET_KEYWORD: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?i)\b(password|passwd|secret|token|api[_-]?key)\b\s*[:=]").unwrap());
 static JWT: Lazy<Regex> =
@@ -27,7 +29,7 @@ pub fn filter_sensitive_content(content: &str) -> SensitiveResult {
     if let Some(reason) = reason {
         return SensitiveResult {
             sensitive: true,
-            title: "敏感内容已跳过".to_string(),
+            title: SENSITIVE_CONTENT_PLACEHOLDER.to_string(),
             content: None,
             reason: Some(reason),
         };
@@ -119,4 +121,3 @@ fn estimate_entropy(value: &str) -> f64 {
         })
         .sum()
 }
-

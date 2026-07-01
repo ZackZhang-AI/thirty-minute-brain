@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { filterSensitiveContent } from "./sensitive";
+import { filterSensitiveContent, SENSITIVE_CONTENT_PLACEHOLDER } from "./sensitive";
 
 describe("filterSensitiveContent", () => {
   it("allows ordinary copied error text", () => {
-    const result = filterSensitiveContent(
-      "TypeError: Cannot read properties of undefined (reading 'id')"
-    );
+    const result = filterSensitiveContent("TypeError: Cannot read properties of undefined (reading 'id')");
 
     expect(result.sensitive).toBe(false);
     expect(result.content).toContain("TypeError");
@@ -17,7 +15,7 @@ describe("filterSensitiveContent", () => {
 
     expect(result.sensitive).toBe(true);
     expect(result.content).toBeNull();
-    expect(result.title).toBe("敏感内容已跳过");
+    expect(result.title).toBe(SENSITIVE_CONTENT_PLACEHOLDER);
     expect(result.reason).toBe("secret-keyword");
   });
 
@@ -36,4 +34,3 @@ describe("filterSensitiveContent", () => {
     expect(result.content).toBe("invoice 12345 total 88");
   });
 });
-

@@ -1,5 +1,8 @@
 import { invoke } from "@tauri-apps/api/core";
+import { createExternalIngestionApi } from "./externalIngestionApi";
 import { createLocalEventStore } from "./localStore";
+import { createSettingsStore } from "./settings";
+import type { ExternalIngestRequest } from "./ingestionGateway";
 import type { EventStore } from "./localStore";
 import type {
   ClearEventsOptions,
@@ -14,6 +17,11 @@ import type {
 } from "./types";
 
 const localStore = createLocalEventStore();
+const localSettingsStore = createSettingsStore();
+const localExternalIngestionApi = createExternalIngestionApi({
+  store: localStore,
+  settingsStore: localSettingsStore
+});
 
 function isTauriRuntime(): boolean {
   return "__TAURI_INTERNALS__" in window;
@@ -90,6 +98,15 @@ export const eventApi: EventStore = {
   async getPrivacyStatus(): Promise<PrivacyStatus> {
     if (isTauriRuntime()) return callTauri("get_privacy_status");
     return localStore.getPrivacyStatus();
+  }
+};
+
+export const ingestionApi = {
+  async ingestExternalEvent(request: ExternalIngestRequest): Promise<MemoryEvent> {
+    if (isTauriRuntime()) {
+      throw new Error("Native external ingestion gateway is not wired yet");
+    }
+    return localExternalIngestionApi.ingestExternalEvent(request);
   }
 };
 

@@ -5,4 +5,3 @@ pub fn cleanup_expired_events(state: &AppState) -> tauri::Result<()> {
     events::cleanup_expired_events(&connection)?;
     Ok(())
 }
-

@@ -121,4 +121,3 @@ fn is_supported_image(path: &Path) -> bool {
         .map(|extension| matches!(extension.to_ascii_lowercase().as_str(), "png" | "jpg" | "jpeg" | "webp"))
         .unwrap_or(false)
 }
-

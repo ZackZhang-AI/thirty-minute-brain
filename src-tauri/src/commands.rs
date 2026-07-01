@@ -1,6 +1,9 @@
 use crate::context_pack;
 use crate::events;
-use crate::models::{CreateEventRequest, EventUpdateInput, MemoryEvent, NewEvent, NewManualEventInput, PrivacyStatus, WatchedFolder};
+use crate::models::{
+    CreateEventRequest, EventUpdateInput, MemoryEvent, NewEvent, NewManualEventInput,
+    PrivacyStatus, WatchedFolder,
+};
 use crate::sensitive;
 use crate::watcher;
 use serde_json::{json, Value};
@@ -9,16 +12,25 @@ use tauri::{AppHandle, State};
 use crate::events::AppState;
 
 #[tauri::command]
-pub fn create_event(input: CreateEventRequest, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+pub fn create_event(
+    input: CreateEventRequest,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     create_event_inner(input, state)
 }
 
 #[tauri::command]
-pub fn ingest_external_event(input: CreateEventRequest, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+pub fn ingest_external_event(
+    input: CreateEventRequest,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     create_event_inner(input, state)
 }
 
-fn create_event_inner(input: CreateEventRequest, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+fn create_event_inner(
+    input: CreateEventRequest,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     validate_ingestion_source(&input)?;
     validate_required_fields(&input)?;
 
@@ -27,9 +39,15 @@ fn create_event_inner(input: CreateEventRequest, state: State<'_, AppState>) -> 
         .as_deref()
         .map(sensitive::filter_sensitive_content);
     let content_hash = events::sha256_hex(&stable_event_hash_input(&input));
-    let metadata_json = sanitize_metadata(input.metadata_json.as_deref(), &input.source, &input.event_type);
+    let metadata_json = sanitize_metadata(
+        input.metadata_json.as_deref(),
+        &input.source,
+        &input.event_type,
+    );
     let connection = state.connection.lock().expect("database lock poisoned");
-    if let Some(existing) = events::find_event_by_hash(&connection, &content_hash).map_err(|error| error.to_string())? {
+    if let Some(existing) =
+        events::find_event_by_hash(&connection, &content_hash).map_err(|error| error.to_string())?
+    {
         return Ok(existing);
     }
 
@@ -37,7 +55,16 @@ fn create_event_inner(input: CreateEventRequest, state: State<'_, AppState>) -> 
         &connection,
         NewEvent {
             event_type: input.event_type,
-            title: if input.title.trim().is_empty() {
+            title: if filtered
+                .as_ref()
+                .map(|result| result.sensitive)
+                .unwrap_or(false)
+            {
+                filtered
+                    .as_ref()
+                    .map(|result| result.title.clone())
+                    .unwrap_or_else(|| sensitive::SENSITIVE_CONTENT_PLACEHOLDER.to_string())
+            } else if input.title.trim().is_empty() {
                 filtered
                     .as_ref()
                     .map(|result| result.title.clone())
@@ -52,7 +79,10 @@ fn create_event_inner(input: CreateEventRequest, state: State<'_, AppState>) -> 
             note: input.note,
             metadata_json,
             content_hash: Some(content_hash),
-            sensitive_flag: filtered.as_ref().map(|result| result.sensitive).unwrap_or(false),
+            sensitive_flag: filtered
+                .as_ref()
+                .map(|result| result.sensitive)
+                .unwrap_or(false),
             sensitive_reason: filtered.and_then(|result| result.reason),
         },
     )
@@ -73,7 +103,10 @@ fn validate_ingestion_source(input: &CreateEventRequest) -> Result<(), String> {
     if allowed.contains(&input.event_type.as_str()) {
         Ok(())
     } else {
-        Err(format!("{} cannot create {} events", input.source, input.event_type))
+        Err(format!(
+            "{} cannot create {} events",
+            input.source, input.event_type
+        ))
     }
 }
 
@@ -82,10 +115,14 @@ fn validate_required_fields(input: &CreateEventRequest) -> Result<(), String> {
         "browser_tab" | "link" if input.url.as_deref().unwrap_or("").trim().is_empty() => {
             Err(format!("{} requires url", input.event_type))
         }
-        "file" | "screenshot" | "editor_file" if input.path.as_deref().unwrap_or("").trim().is_empty() => {
+        "file" | "screenshot" | "editor_file"
+            if input.path.as_deref().unwrap_or("").trim().is_empty() =>
+        {
             Err(format!("{} requires path", input.event_type))
         }
-        "clipboard" | "note" | "editor_selection" | "command" if input.content.as_deref().unwrap_or("").trim().is_empty() => {
+        "clipboard" | "note" | "editor_selection" | "command"
+            if input.content.as_deref().unwrap_or("").trim().is_empty() =>
+        {
             Err(format!("{} requires content", input.event_type))
         }
         _ => Ok(()),
@@ -105,14 +142,24 @@ fn stable_event_hash_input(input: &CreateEventRequest) -> String {
     .to_string()
 }
 
-fn sanitize_metadata(metadata_json: Option<&str>, source: &str, event_type: &str) -> Option<String> {
+fn sanitize_metadata(
+    metadata_json: Option<&str>,
+    source: &str,
+    event_type: &str,
+) -> Option<String> {
     let mut metadata = metadata_json
         .and_then(|raw| serde_json::from_str::<Value>(raw).ok())
         .and_then(|value| value.as_object().cloned())
         .unwrap_or_default();
 
     if event_type == "command" {
-        for key in ["stdout", "stderr", "output", "commandOutput", "combinedOutput"] {
+        for key in [
+            "stdout",
+            "stderr",
+            "output",
+            "commandOutput",
+            "combinedOutput",
+        ] {
             metadata.remove(key);
         }
     }
@@ -122,13 +169,26 @@ fn sanitize_metadata(metadata_json: Option<&str>, source: &str, event_type: &str
 }
 
 #[tauri::command]
-pub fn create_manual_event(input: NewManualEventInput, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+pub fn create_manual_event(
+    input: NewManualEventInput,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     let new_event = match input.event_type.as_str() {
         "note" => {
-            let filtered = sensitive::filter_sensitive_content(input.content.as_deref().or(input.note.as_deref()).unwrap_or(""));
+            let filtered = sensitive::filter_sensitive_content(
+                input
+                    .content
+                    .as_deref()
+                    .or(input.note.as_deref())
+                    .unwrap_or(""),
+            );
             NewEvent {
                 event_type: "note".to_string(),
-                title: input.title.unwrap_or(filtered.title),
+                title: if filtered.sensitive {
+                    filtered.title.clone()
+                } else {
+                    input.title.unwrap_or(filtered.title.clone())
+                },
                 content: filtered.content,
                 source: Some("manual".to_string()),
                 path: None,
@@ -142,9 +202,12 @@ pub fn create_manual_event(input: NewManualEventInput, state: State<'_, AppState
         }
         "link" => NewEvent {
             event_type: "link".to_string(),
-            title: input
-                .title
-                .unwrap_or_else(|| input.url.clone().unwrap_or_else(|| "Untitled link".to_string())),
+            title: input.title.unwrap_or_else(|| {
+                input
+                    .url
+                    .clone()
+                    .unwrap_or_else(|| "Untitled link".to_string())
+            }),
             content: None,
             source: Some("manual".to_string()),
             path: None,
@@ -157,9 +220,12 @@ pub fn create_manual_event(input: NewManualEventInput, state: State<'_, AppState
         },
         "file" => {
             let path = input.path.unwrap_or_default();
-            let title = input
-                .title
-                .unwrap_or_else(|| path.split(['\\', '/']).last().unwrap_or("Untitled file").to_string());
+            let title = input.title.unwrap_or_else(|| {
+                path.split(['\\', '/'])
+                    .last()
+                    .unwrap_or("Untitled file")
+                    .to_string()
+            });
             NewEvent {
                 event_type: "file".to_string(),
                 title,
@@ -182,10 +248,15 @@ pub fn create_manual_event(input: NewManualEventInput, state: State<'_, AppState
 }
 
 #[tauri::command]
-pub fn create_clipboard_event(content: String, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+pub fn create_clipboard_event(
+    content: String,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     let content_hash = events::sha256_hex(&content);
     let connection = state.connection.lock().expect("database lock poisoned");
-    if let Some(existing) = events::find_event_by_hash(&connection, &content_hash).map_err(|error| error.to_string())? {
+    if let Some(existing) =
+        events::find_event_by_hash(&connection, &content_hash).map_err(|error| error.to_string())?
+    {
         return Ok(existing);
     }
 
@@ -218,8 +289,14 @@ pub fn list_recent_events(
     state: State<'_, AppState>,
 ) -> Result<Vec<MemoryEvent>, String> {
     let connection = state.connection.lock().expect("database lock poisoned");
-    events::list_recent_events(&connection, window_minutes.unwrap_or(30), types, sensitive_only, include_pinned)
-        .map_err(|error| error.to_string())
+    events::list_recent_events(
+        &connection,
+        window_minutes.unwrap_or(30),
+        types,
+        sensitive_only,
+        include_pinned,
+    )
+    .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -232,18 +309,33 @@ pub fn search_events(
     state: State<'_, AppState>,
 ) -> Result<Vec<MemoryEvent>, String> {
     let connection = state.connection.lock().expect("database lock poisoned");
-    events::search_events(&connection, &query, window_minutes.unwrap_or(30), types, sensitive_only, include_pinned)
-        .map_err(|error| error.to_string())
+    events::search_events(
+        &connection,
+        &query,
+        window_minutes.unwrap_or(30),
+        types,
+        sensitive_only,
+        include_pinned,
+    )
+    .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-pub fn update_event(id: String, input: EventUpdateInput, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+pub fn update_event(
+    id: String,
+    input: EventUpdateInput,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     let connection = state.connection.lock().expect("database lock poisoned");
     events::update_event(&connection, &id, input).map_err(|error| error.to_string())
 }
 
 #[tauri::command]
-pub fn toggle_pin_event(id: String, pinned: bool, state: State<'_, AppState>) -> Result<MemoryEvent, String> {
+pub fn toggle_pin_event(
+    id: String,
+    pinned: bool,
+    state: State<'_, AppState>,
+) -> Result<MemoryEvent, String> {
     let connection = state.connection.lock().expect("database lock poisoned");
     events::toggle_pin_event(&connection, &id, pinned).map_err(|error| error.to_string())
 }
@@ -283,7 +375,9 @@ pub fn generate_context_pack(
 ) -> Result<String, String> {
     let connection = state.connection.lock().expect("database lock poisoned");
     let recent = match selected_ids {
-        Some(ids) if !ids.is_empty() => events::get_events_by_ids(&connection, &ids).map_err(|error| error.to_string())?,
+        Some(ids) if !ids.is_empty() => {
+            events::get_events_by_ids(&connection, &ids).map_err(|error| error.to_string())?
+        }
         _ => events::list_recent_events(
             &connection,
             window_minutes.unwrap_or(30),
@@ -322,7 +416,11 @@ pub fn get_privacy_status(state: State<'_, AppState>) -> Result<PrivacyStatus, S
 }
 
 #[tauri::command]
-pub fn add_watched_folder(path: String, app: AppHandle, state: State<'_, AppState>) -> Result<WatchedFolder, String> {
+pub fn add_watched_folder(
+    path: String,
+    app: AppHandle,
+    state: State<'_, AppState>,
+) -> Result<WatchedFolder, String> {
     watcher::add_watched_folder(path, app, state)
 }
 

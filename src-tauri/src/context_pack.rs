@@ -118,4 +118,3 @@ fn format_time(value: &str) -> String {
         .unwrap_or("--:--")
         .to_string()
 }
-

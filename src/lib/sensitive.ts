@@ -5,6 +5,8 @@ export interface SensitiveFilterResult {
   reason: string | null;
 }
 
+export const SENSITIVE_CONTENT_PLACEHOLDER = "敏感内容已跳过";
+
 const SECRET_KEYWORD_PATTERN = /\b(password|passwd|secret|token|api[_-]?key)\b\s*[:=]/i;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/;
 const GITHUB_TOKEN_PATTERN = /\b(ghp_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/;
@@ -14,15 +16,12 @@ const AWS_ACCESS_KEY_PATTERN = /\bAKIA[0-9A-Z]{16}\b/;
 export function filterSensitiveContent(content: string): SensitiveFilterResult {
   const trimmed = content.trim();
 
-  const reason =
-    matchSensitiveReason(trimmed) ??
-    matchCreditCard(trimmed) ??
-    matchHighEntropyString(trimmed);
+  const reason = matchSensitiveReason(trimmed) ?? matchCreditCard(trimmed) ?? matchHighEntropyString(trimmed);
 
   if (reason) {
     return {
       sensitive: true,
-      title: "敏感内容已跳过",
+      title: SENSITIVE_CONTENT_PLACEHOLDER,
       content: null,
       reason
     };
@@ -96,4 +95,3 @@ function estimateEntropy(value: string): number {
   }
   return entropy;
 }
-

@@ -28,12 +28,17 @@ describe("createLocalEventStore", () => {
     expect(results[0].title).toContain("Stripe");
   });
 
-  it("skips sensitive manual text content", async () => {
+  it("skips sensitive manual text content without preserving a custom title", async () => {
     const store = createLocalEventStore();
 
-    const event = await store.createManualEvent({ type: "note", content: "token=secret-value" });
+    const event = await store.createManualEvent({
+      type: "note",
+      title: "token=secret-value",
+      content: "token=secret-value"
+    });
 
     expect(event.sensitiveFlag).toBe(true);
+    expect(event.title).toBe("敏感内容已跳过");
     expect(event.content).toBeNull();
   });
 

@@ -92,7 +92,7 @@ export function createLocalEventStore(options: LocalStoreOptions = {}): EventSto
       return save(
         createBaseEvent({
           type: normalized.type,
-          title: normalized.title.trim() || filtered?.title || "Untitled",
+          title: filtered?.sensitive ? filtered.title : normalized.title.trim() || filtered?.title || "Untitled",
           content: filtered ? filtered.content : null,
           path: normalized.path ?? null,
           url: normalized.url ?? null,
@@ -112,7 +112,7 @@ export function createLocalEventStore(options: LocalStoreOptions = {}): EventSto
         return save(
           createBaseEvent({
             type: "note",
-            title: input.title?.trim() || filtered.title,
+            title: filtered.sensitive ? filtered.title : input.title?.trim() || filtered.title,
             content: filtered.content,
             note: input.note ?? null,
             source: "manual",
