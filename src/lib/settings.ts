@@ -45,6 +45,7 @@ export function createSettingsStore(options: SettingsStoreOptions = {}): Setting
 
   return {
     get() {
+      if (storage) settings = readSettings(storage, key);
       return { ...settings };
     },
     update(next) {

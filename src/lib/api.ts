@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
+import { ingestDeepLink } from "./deepLinkIngestion";
 import { createExternalIngestionApi } from "./externalIngestionApi";
 import { createLocalEventStore } from "./localStore";
 import { createSettingsStore } from "./settings";
+import { createTauriIngestionApi } from "./tauriIngestionApi";
 import type { ExternalIngestRequest } from "./ingestionGateway";
 import type { EventStore } from "./localStore";
 import type {
@@ -21,6 +23,10 @@ const localSettingsStore = createSettingsStore();
 const localExternalIngestionApi = createExternalIngestionApi({
   store: localStore,
   settingsStore: localSettingsStore
+});
+const tauriExternalIngestionApi = createTauriIngestionApi({
+  settingsStore: localSettingsStore,
+  callTauri
 });
 
 function isTauriRuntime(): boolean {
@@ -104,9 +110,13 @@ export const eventApi: EventStore = {
 export const ingestionApi = {
   async ingestExternalEvent(request: ExternalIngestRequest): Promise<MemoryEvent> {
     if (isTauriRuntime()) {
-      throw new Error("Native external ingestion gateway is not wired yet");
+      return tauriExternalIngestionApi.ingestExternalEvent(request);
     }
     return localExternalIngestionApi.ingestExternalEvent(request);
+  },
+
+  async ingestDeepLink(value: string): Promise<MemoryEvent> {
+    return ingestDeepLink(value, ingestionApi);
   }
 };
 

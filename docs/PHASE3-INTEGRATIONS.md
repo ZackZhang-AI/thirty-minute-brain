@@ -24,13 +24,14 @@ interface CreateEventRequest {
 - `src/lib/ingestion.ts`：来源/类型白名单、必填字段校验、命令输出 metadata 二次剥离。
 - `src/lib/ingestionGateway.ts`：token 校验、来源启用状态、全局暂停、权限检查、敏感过滤、去重、写入回调。
 - `src/lib/externalIngestionApi.ts`：settings-backed 本地预览接入 API，写入成功后更新来源 `lastWriteAt`。
+- `src/lib/tauriIngestionApi.ts`：Tauri runtime 接入 API，先经过前端 gateway，再调用 Rust `ingest_external_event` 写入 SQLite。
 - `src/lib/deepLink.ts`：解析 `thirty-minute-brain://ingest?token=...&payload=...`。
-- `src/lib/api.ts`：导出本地预览 `ingestionApi.ingestExternalEvent`；Tauri runtime 暂时显式拒绝，避免绕过 SQLite/token 语义。
+- `src/lib/deepLinkIngestion.ts`：把 deep link 字符串解析后路由到统一 ingestion API。
+- `src/lib/api.ts`：导出 `ingestionApi.ingestExternalEvent` 和 `ingestionApi.ingestDeepLink`，浏览器预览写本地 store，Tauri runtime 写 SQLite。
 - Tauri command 雏形：`ingest_external_event`。
 
 下一步原生接入：
 
-- 将 Tauri command 接到同一套动态权限/token 语义。
 - 启用本地 loopback endpoint：`POST http://127.0.0.1:38330/ingest`。
 - 在桌面端注册 deep link scheme。
 

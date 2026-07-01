@@ -21,7 +21,9 @@ Thirty-Minute Brain 是一个本地优先的桌面短期记忆工具，用来找
 - 权限中心：来源开关、全局暂停、本地 ingestion token。
 - Phase 3 接入脚手架：浏览器插件、VS Code 插件、PowerShell/bash/zsh hook。
 - 外部 ingestion gateway：token 校验、权限检查、敏感过滤、去重、写入回调。
+- Tauri runtime 外部接入会先经过前端 gateway，再调用 Rust `ingest_external_event` 写入 SQLite。
 - Deep link payload 解析：`thirty-minute-brain://ingest?token=...&payload=...`。
+- Deep link ingestion 路由：解析后进入同一套 ingestion API。
 - Tauri 托盘菜单和 `Ctrl+Shift+Space` 全局快捷键。
 
 ## 隐私边界

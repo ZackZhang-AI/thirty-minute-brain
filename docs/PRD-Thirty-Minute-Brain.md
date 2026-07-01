@@ -58,6 +58,9 @@
 - `CreateEventRequest` 统一协议。
 - `ingestionGateway`：token 校验、权限检查、全局暂停、来源/类型白名单、敏感过滤、去重、写入回调。
 - `deepLink` payload 解析：`thirty-minute-brain://ingest?token=...&payload=...`。
+- `deepLinkIngestion`：解析 deep link 后路由到统一 ingestion API。
+- Tauri runtime 外部接入：前端 gateway 校验后调用 Rust `ingest_external_event` 写 SQLite。
+- 多个 settings store 共享同一 storage 时保持同步，确保权限中心修改后 API 能读到最新 token/来源开关。
 - 分享包导出：Markdown、JSON、Bug report，并默认脱敏。
 - GitHub 仓库与持续提交记录。
 
@@ -345,8 +348,8 @@ thirty-minute-brain://ingest?token=<local-token>&payload=<base64url-json>
 
 短期优先级：
 
-1. 将 native Tauri command 接入同一套 ingestion gateway 语义。
-2. 完成 loopback HTTP ingestion endpoint。
+1. 完成 loopback HTTP ingestion endpoint。
+2. 注册 Tauri deep link scheme，并把系统 deep link 事件交给 `ingestionApi.ingestDeepLink`。
 3. 让浏览器插件、VS Code 插件、shell hook 使用 token + deep link/loopback 协议。
 4. 在权限中心展示真实 `lastWriteAt`。
 5. 补齐来源级别删除和临时隐身模式。

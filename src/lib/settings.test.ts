@@ -35,6 +35,20 @@ describe("createSettingsStore", () => {
     expect(restored.get().privacyNoticeAccepted).toBe(true);
   });
 
+  it("keeps separate stores backed by the same storage in sync", () => {
+    const memory = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => memory.set(key, value)
+    };
+    const appStore = createSettingsStore({ storage });
+    const apiStore = createSettingsStore({ storage });
+
+    appStore.update({ ingestionToken: "fresh-token" });
+
+    expect(apiStore.get().ingestionToken).toBe("fresh-token");
+  });
+
   it("persists permission center and productization settings", () => {
     const memory = new Map<string, string>();
     const storage = {
