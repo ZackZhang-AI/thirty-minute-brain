@@ -4,6 +4,31 @@ Thirty-Minute Brain 是一个本地优先的桌面短期记忆工具，用来找
 
 它是 Recently Seen Search，不是长期笔记软件。
 
+## 产品预览
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/images/readme-context-memory.png" alt="Thirty-Minute Brain 最近上下文"></td>
+    <td width="50%"><img src="docs/images/readme-privacy.png" alt="Thirty-Minute Brain 隐私边界"></td>
+  </tr>
+  <tr>
+    <td align="center">最近工作上下文与搜索</td>
+    <td align="center">首次启动隐私说明</td>
+  </tr>
+</table>
+
+## 本地数据流
+
+```mermaid
+flowchart LR
+    Sources[剪贴板 / 手动记录 / 截图目录<br/>浏览器、VS Code、Shell 可选接入] --> Gateway[权限与 Ingestion Gateway]
+    Gateway --> Privacy[敏感内容过滤<br/>关键词、高熵、Luhn]
+    Privacy --> Dedupe[去重与事件标准化]
+    Dedupe --> SQLite[(本地 SQLite)]
+    SQLite --> Search[30 分钟 / 24 小时搜索]
+    Search --> Context[上下文包、Bug Report、JSON 导出]
+```
+
 ## 当前功能
 
 - 最近 30 分钟时间线，并支持切换 24 小时视图。
